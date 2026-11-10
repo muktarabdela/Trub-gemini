@@ -134,42 +134,78 @@ jobs:
 
           (layout / "turab_widget.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:id="@+id/widget_root" android:layout_width="match_parent"
-              android:layout_height="match_parent" android:orientation="vertical"
-              android:gravity="center" android:padding="4dp"
+              android:id="@+id/widget_root"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:gravity="top|center_horizontal"
+              android:paddingTop="12dp"
+              android:paddingBottom="6dp"
+              android:paddingLeft="12dp"
+              android:paddingRight="12dp"
               android:background="@drawable/turab_widget_background">
-              <TextView android:id="@+id/widget_streak" android:layout_width="wrap_content"
-                  android:layout_height="wrap_content" android:gravity="center"
-                  android:includeFontPadding="false" android:text="🔥 1"
-                  android:textColor="#FFF0C7" android:textStyle="bold" android:textSize="25sp"/>
-              <TextView android:id="@+id/widget_message" android:layout_width="wrap_content"
-                  android:layout_height="wrap_content" android:layout_marginTop="1dp"
-                  android:gravity="center" android:includeFontPadding="false"
-                  android:text="Don't let it break!" android:textColor="#FFE0A0" android:textSize="10sp"/>
-              <TextView android:id="@+id/widget_milestone_icon"
-                  android:layout_width="match_parent" android:layout_height="0dp"
-                  android:layout_weight="1" android:layout_marginTop="0dp"
-                  android:gravity="center" android:textAlignment="center"
-                  android:includeFontPadding="false" android:maxLines="1"
-                  android:text="🌱" android:textSize="70sp"
-                  android:contentDescription="Current milestone icon"/>
+
+              <TextView
+                  android:id="@+id/widget_streak"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:gravity="center"
+                  android:includeFontPadding="false"
+                  android:text="🔥 1"
+                  android:textColor="#FFF0C7"
+                  android:textStyle="bold"
+                  android:textSize="32sp" />
+
+              <TextView
+                  android:id="@+id/widget_message"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:layout_marginTop="2dp"
+                  android:gravity="center"
+                  android:includeFontPadding="false"
+                  android:text="Don't let it break!"
+                  android:textColor="#FFE0A0"
+                  android:textSize="12sp"
+                  android:textStyle="bold" />
+
+              <TextView
+                  android:id="@+id/widget_milestone_icon"
+                  android:layout_width="match_parent"
+                  android:layout_height="0dp"
+                  android:layout_weight="1"
+                  android:layout_marginTop="2dp"
+                  android:gravity="center"
+                  android:textAlignment="center"
+                  android:includeFontPadding="false"
+                  android:maxLines="1"
+                  android:text="🌱"
+                  android:textSize="96sp"
+                  android:contentDescription="Current milestone icon" />
           </LinearLayout>""")
 
           (drawable / "turab_widget_background.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
           <shape xmlns:android="http://schemas.android.com/apk/res/android">
-              <gradient android:angle="90" android:startColor="#D86A12"
-                  android:centerColor="#B9380D" android:endColor="#98180F"/>
-              <corners android:radius="20dp"/>
-              <stroke android:width="1dp" android:color="#E6A34A"/>
+              <gradient
+                  android:angle="270"
+                  android:startColor="#D86A12"
+                  android:centerColor="#B9380D"
+                  android:endColor="#98180F"/>
+              <corners android:radius="24dp"/>
+              <stroke android:width="1.5dp" android:color="#E6A34A"/>
           </shape>""")
 
           (xml / "turab_widget_info.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
           <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-              android:minWidth="110dp" android:minHeight="110dp"
-              android:minResizeWidth="110dp" android:minResizeHeight="110dp"
-              android:targetCellWidth="2" android:targetCellHeight="2"
-              android:updatePeriodMillis="1800000" android:initialLayout="@layout/turab_widget"
-              android:resizeMode="none" android:widgetCategory="home_screen"/>""")
+              android:minWidth="140dp"
+              android:minHeight="140dp"
+              android:minResizeWidth="110dp"
+              android:minResizeHeight="110dp"
+              android:targetCellWidth="2"
+              android:targetCellHeight="2"
+              android:updatePeriodMillis="1800000"
+              android:initialLayout="@layout/turab_widget"
+              android:resizeMode="none"
+              android:widgetCategory="home_screen"/>""")
 
           manifest = base / "AndroidManifest.xml"
           text = manifest.read_text()
@@ -239,3 +275,4 @@ jobs:
           name: Turab-Duolingo-Style-Widget-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+

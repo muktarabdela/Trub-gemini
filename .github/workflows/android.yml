@@ -42,14 +42,377 @@ jobs:
           npx cap add android
           npx cap sync android
 
-          echo "Checking Capacitor settings..."
-          test -f android/capacitor.settings.gradle
-          echo "Capacitor settings file found!"
+      - name: Create Native Turab Widget
+        run: |
+          BASE="android/app/src/main"
+          JAVA="$BASE/java/com/turab/app"
+          mkdir -p "$JAVA"
+          mkdir -p "$BASE/res/layout"
+          mkdir -p "$BASE/res/xml"
+          mkdir -p "$BASE/res/drawable"
+
+          cat > "$JAVA/TurabWidgetPlugin.java" <<'EOF'
+          package com.turab.app;
+
+          import android.content.Context;
+          import android.content.SharedPreferences;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+
+          @CapacitorPlugin(name = "TurabWidget")
+          public class TurabWidgetPlugin extends Plugin {
+
+              @PluginMethod
+              public void update(PluginCall call) {
+                  String startDate = call.getData().optString("startDate", "");
+                  int bestStreak = call.getData().optInt("bestStreak", 1);
+
+                  Context context = getContext();
+
+                  SharedPreferences prefs = context.getSharedPreferences(
+                      "TurabWidgetData", Context.MODE_PRIVATE
+                  );
+
+                  prefs.edit()
+                      .putString("startDate", startDate)
+                      .putInt("bestStreak", bestStreak)
+                      .apply();
+
+                  TurabWidgetProvider.updateAll(context);
+
+                  call.resolve();
+              }
+          }
+          EOF
+
+          cat > "$JAVA/TurabWidgetProvider.java" <<'EOF'
+          package com.turab.app;
+
+          import android.appwidget.AppWidgetManager;
+          import android.appwidget.AppWidgetProvider;
+          import android.content.ComponentName;
+          import android.content.Context;
+
+          public class TurabWidgetProvider extends AppWidgetProvider {
+
+              @Override
+              public void onUpdate(
+                  Context context,
+                  AppWidgetManager manager,
+                  int[] widgetIds
+              ) {
+                  for (int id : widgetIds) {
+                      TurabWidgetHelper.updateWidget(context, manager, id);
+                  }
+              }
+
+              public static void updateAll(Context context) {
+                  AppWidgetManager manager =
+                      AppWidgetManager.getInstance(context);
+
+                  ComponentName component = new ComponentName(
+                      context, TurabWidgetProvider.class
+                  );
+
+                  int[] ids = manager.getAppWidgetIds(component);
+
+                  for (int id : ids) {
+                      TurabWidgetHelper.updateWidget(context, manager, id);
+                  }
+              }
+          }
+          EOF
+
+          cat > "$JAVA/TurabWidgetHelper.java" <<'EOF'
+          package com.turab.app;
+
+          import android.app.PendingIntent;
+          import android.appwidget.AppWidgetManager;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.content.SharedPreferences;
+          import android.widget.RemoteViews;
+
+          import java.util.Calendar;
+          import java.util.GregorianCalendar;
+          import java.util.TimeZone;
+
+          public class TurabWidgetHelper {
+
+              public static void updateWidget(
+                  Context context,
+                  AppWidgetManager manager,
+                  int widgetId
+              ) {
+                  SharedPreferences prefs = context.getSharedPreferences(
+                      "TurabWidgetData", Context.MODE_PRIVATE
+                  );
+
+                  String startDate = prefs.getString("startDate", "");
+                  int bestStreak = prefs.getInt("bestStreak", 1);
+                  int currentStreak = calculateStreak(startDate);
+
+                  RemoteViews views = new RemoteViews(
+                      context.getPackageName(),
+                      R.layout.turab_widget
+                  );
+
+                  views.setTextViewText(
+                      R.id.widget_day,
+                      "DAY " + currentStreak
+                  );
+
+                  views.setTextViewText(
+                      R.id.widget_best,
+                      "PERSONAL BEST: " + Math.max(bestStreak, currentStreak)
+                  );
+
+                  Intent launchIntent = context.getPackageManager()
+                      .getLaunchIntentForPackage(context.getPackageName());
+
+                  if (launchIntent != null) {
+                      PendingIntent pendingIntent = PendingIntent.getActivity(
+                          context,
+                          0,
+                          launchIntent,
+                          PendingIntent.FLAG_UPDATE_CURRENT |
+                          PendingIntent.FLAG_IMMUTABLE
+                      );
+
+                      views.setOnClickPendingIntent(
+                          R.id.widget_root, pendingIntent
+                      );
+                  }
+
+                  manager.updateAppWidget(widgetId, views);
+              }
+
+              private static int calculateStreak(String startDate) {
+                  try {
+                      String[] parts = startDate.split("-");
+
+                      int year = Integer.parseInt(parts[0]);
+                      int month = Integer.parseInt(parts[1]);
+                      int day = Integer.parseInt(parts[2]);
+
+                      Calendar start = new GregorianCalendar(
+                          TimeZone.getTimeZone("UTC")
+                      );
+                      start.clear();
+                      start.set(year, month - 1, day);
+
+                      Calendar localToday = Calendar.getInstance();
+
+                      Calendar today = new GregorianCalendar(
+                          TimeZone.getTimeZone("UTC")
+                      );
+                      today.clear();
+                      today.set(
+                          localToday.get(Calendar.YEAR),
+                          localToday.get(Calendar.MONTH),
+                          localToday.get(Calendar.DAY_OF_MONTH)
+                      );
+
+                      long difference =
+                          (today.getTimeInMillis() -
+                          start.getTimeInMillis()) / 86400000L;
+
+                      return Math.max(1, (int) difference + 1);
+
+                  } catch (Exception e) {
+                      return 1;
+                  }
+              }
+          }
+          EOF
+
+          cat > "$BASE/res/layout/turab_widget.xml" <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <LinearLayout
+              xmlns:android="http://schemas.android.com/apk/res/android"
+              android:id="@+id/widget_root"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="horizontal"
+              android:gravity="center_vertical"
+              android:padding="16dp"
+              android:background="@drawable/turab_widget_background">
+
+              <TextView
+                  android:layout_width="52dp"
+                  android:layout_height="52dp"
+                  android:gravity="center"
+                  android:text="🐻"
+                  android:textSize="36sp" />
+
+              <LinearLayout
+                  android:layout_width="0dp"
+                  android:layout_height="wrap_content"
+                  android:layout_weight="1"
+                  android:orientation="vertical"
+                  android:layout_marginStart="12dp">
+
+                  <TextView
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="TURAB COMPANION"
+                      android:textColor="#F5EBE0"
+                      android:textStyle="bold"
+                      android:textSize="12sp" />
+
+                  <TextView
+                      android:id="@+id/widget_day"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="DAY 1"
+                      android:textColor="#D4AF37"
+                      android:textStyle="bold"
+                      android:textSize="24sp" />
+
+                  <TextView
+                      android:id="@+id/widget_best"
+                      android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="PERSONAL BEST: 1"
+                      android:textColor="#8C8275"
+                      android:textSize="10sp" />
+
+              </LinearLayout>
+          </LinearLayout>
+          EOF
+
+          cat > "$BASE/res/drawable/turab_widget_background.xml" <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <shape xmlns:android="http://schemas.android.com/apk/res/android">
+              <solid android:color="#1E1B18"/>
+              <corners android:radius="18dp"/>
+              <stroke
+                  android:width="1dp"
+                  android:color="#D4AF37"/>
+          </shape>
+          EOF
+
+          cat > "$BASE/res/xml/turab_widget_info.xml" <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <appwidget-provider
+              xmlns:android="http://schemas.android.com/apk/res/android"
+              android:minWidth="180dp"
+              android:minHeight="90dp"
+              android:minResizeWidth="150dp"
+              android:minResizeHeight="80dp"
+              android:updatePeriodMillis="1800000"
+              android:initialLayout="@layout/turab_widget"
+              android:resizeMode="horizontal|vertical"
+              android:widgetCategory="home_screen"/>
+          EOF
+
+      - name: Register Widget and Plugin
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          base = Path("android/app/src/main")
+          manifest = base / "AndroidManifest.xml"
+
+          content = manifest.read_text()
+
+          receiver = '''
+              <receiver
+                  android:name=".TurabWidgetProvider"
+                  android:label="Turab"
+                  android:exported="false">
+                  <intent-filter>
+                      <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+                  </intent-filter>
+                  <meta-data
+                      android:name="android.appwidget.provider"
+                      android:resource="@xml/turab_widget_info"/>
+              </receiver>
+          '''
+
+          if "TurabWidgetProvider" not in content:
+              content = content.replace(
+                  "</application>",
+                  receiver + "\n</application>"
+              )
+
+          manifest.write_text(content)
+
+          activity = base / "java/com/turab/app/MainActivity.java"
+
+          activity.write_text("""package com.turab.app;
+
+          import android.os.Bundle;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  registerPlugin(TurabWidgetPlugin.class);
+                  super.onCreate(savedInstanceState);
+              }
+          }
+          """)
+
+          print("Widget receiver and plugin registered.")
+          PY
+
+      - name: Connect Turab App to Widget
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          file = Path("www/index.html")
+          html = file.read_text()
+
+          function = """
+          // Synchronize Turab data with the native Android widget
+          function syncTurabWidget(currentStreak) {
+              try {
+                  const plugin = window.Capacitor &&
+                      window.Capacitor.Plugins &&
+                      window.Capacitor.Plugins.TurabWidget;
+
+                  if (plugin && typeof plugin.update === 'function') {
+                      plugin.update({
+                          startDate: appState.startDate,
+                          bestStreak: appState.bestStreak
+                      }).catch(error => console.log(
+                          'Turab widget sync:', error
+                      ));
+                  }
+              } catch (error) {
+                  console.log('Widget sync unavailable:', error);
+              }
+          }
+
+          """
+
+          marker = "        // Render UI"
+          if "function syncTurabWidget" not in html:
+              if marker not in html:
+                  raise SystemExit("Could not find Render UI section.")
+              html = html.replace(marker, function + marker, 1)
+
+          marker2 = "            // Text elements"
+          if "syncTurabWidget(currentStreak);" not in html:
+              if marker2 not in html:
+                  raise SystemExit("Could not find Text elements section.")
+              html = html.replace(
+                  marker2,
+                  "            syncTurabWidget(currentStreak);\n\n" + marker2,
+                  1
+              )
+
+          file.write_text(html)
+          print("Turab widget data connection added.")
+          PY
 
       - name: Update Gradle Wrapper
         run: |
-          sed -i 's|^distributionUrl=.*|distributionUrl=https\://services.gradle.org/distributions/gradle-8.14.3-all.zip|' android/gradle/wrapper/gradle-wrapper.properties
-          cat android/gradle/wrapper/gradle-wrapper.properties
+          sed -i 's|^distributionUrl=.*|distributionUrl=https\\://services.gradle.org/distributions/gradle-8.14.3-all.zip|' android/gradle/wrapper/gradle-wrapper.properties
 
       - name: Build Android APK
         run: |
@@ -60,6 +423,6 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Turab-Debug-APK
+          name: Turab-Widget-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error

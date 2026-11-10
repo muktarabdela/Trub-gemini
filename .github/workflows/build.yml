@@ -40,7 +40,12 @@ jobs:
         run: |
           npx cap init Turab com.turab.app --web-dir www
           npx cap add android
-          npx cap copy android
+          npx cap sync android
+
+          echo "Checking Capacitor settings..."
+          test -f android/capacitor.settings.gradle
+          echo "Capacitor settings file found!"
+
 
       - name: Update Gradle Wrapper
         run: |

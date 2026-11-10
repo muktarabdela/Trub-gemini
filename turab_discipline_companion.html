@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Turab - Personal Discipline Companion</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        turabDark: '#1E1B18',
+                        turabCard: '#2A2621',
+                        turabAccent: '#D4AF37',
+                        turabCream: '#F5EBE0',
+                        turabGreen: '#4CAF50',
+                        turabMuted: '#8C8275'
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #12100E;
+            color: #F5EBE0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        .mascot-container {
+            transition: transform 0.3s ease, filter 0.3s ease;
+        }
+        .mascot-container:active {
+            transform: scale(0.96);
+        }
+        .nav-active {
+            color: #D4AF37;
+            transform: translateY(-2px);
+        }
+        .pulse-accent {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col justify-between overflow-hidden max-w-md mx-auto relative border-x border-stone-800">
+
+    <!-- TOP BAR -->
+    <header class="p-4 flex justify-between items-center bg-turabDark/80 backdrop-blur border-b border-stone-800 z-10">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid font-bold text-turabAccent text-xl fa-shield-halved"></i>
+            <h1 class="font-bold text-lg tracking-wider text-turabCream">TURAB</h1>
+        </div>
+        <div class="text-xs px-2.5 py-1 rounded-full bg-stone-800 text-turabAccent font-medium border border-stone-700" id="mascotRankBadge">
+            Beginner
+        </div>
+    </header>
+
+    <!-- CONTENT AREA -->
+    <main id="mainContainer" class="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
+        
+        <!-- VIEW: HOME -->
+        <section id="viewHome" class="space-y-4">
+            <!-- Mascot Display Card -->
+            <div class="bg-turabDark border border-stone-800 rounded-3xl p-6 text-center shadow-xl relative overflow-hidden flex flex-col items-center">
+                <div class="absolute -top-10 -left-10 w-32 h-32 bg-turabAccent/5 rounded-full blur-2xl"></div>
+                
+                <!-- Mascot Dynamic Canvas Vector SVG -->
+                <div id="mascotAvatar" class="mascot-container w-44 h-44 my-2 relative flex items-center justify-center">
+                    <svg viewBox="0 0 200 200" class="w-full h-full drop-shadow-2xl" id="mascotSvg">
+                        <!-- Background Glow -->
+                        <circle cx="100" cy="100" r="85" fill="#2A2621" stroke="#D4AF37" stroke-width="2" opacity="0.4"/>
+                        <!-- Bear Ears -->
+                        <circle cx="55" cy="55" r="22" fill="#5C4033" stroke="#3D2B1F" stroke-width="4"/>
+                        <circle cx="55" cy="55" r="12" fill="#D4AF37" opacity="0.6"/>
+                        <circle cx="145" cy="55" r="22" fill="#5C4033" stroke="#3D2B1F" stroke-width="4"/>
+                        <circle cx="145" cy="55" r="12" fill="#D4AF37" opacity="0.6"/>
+                        <!-- Bear Head -->
+                        <circle cx="100" cy="105" r="65" fill="#4A3525" stroke="#2D1E15" stroke-width="4"/>
+                        <!-- Snout -->
+                        <ellipse cx="100" cy="120" rx="30" ry="22" fill="#8B5A2B"/>
+                        <!-- Nose -->
+                        <path d="M 90 110 Q 100 102 110 110 Q 100 122 90 110 Z" fill="#1E1B18"/>
+                        <!-- Eyes (Dynamic Eyebrows/Eyes set via Javascript) -->
+                        <g id="mascotEyes">
+                            <circle cx="75" cy="95" r="7" fill="#F5EBE0"/>
+                            <circle cx="75" cy="95" r="3" fill="#1E1B18"/>
+                            <circle cx="125" cy="95" r="7" fill="#F5EBE0"/>
+                            <circle cx="125" cy="95" r="3" fill="#1E1B18"/>
+                        </g>
+                        <!-- Mouth (Dynamic expression) -->
+                        <path id="mascotMouth" d="M 90 128 Q 100 135 110 128" fill="none" stroke="#1E1B18" stroke-width="3" stroke-linecap="round"/>
+                        <!-- Mascot Armor/Badge -->
+                        <path d="M 85 160 L 100 175 L 115 160 Z" fill="#D4AF37"/>
+                    </svg>
+                </div>
+
+                <div class="mt-1">
+                    <span class="text-xs uppercase tracking-widest text-turabMuted font-semibold">Current Freedom Streak</span>
+                    <div class="text-5xl font-black text-turabCream my-1 flex items-center justify-center gap-2">
+                        <span id="streakCount">1</span>
+                        <span class="text-lg text-turabAccent font-medium">Days</span>
+                    </div>
+                </div>
+
+                <!-- Quote Card -->
+                <div class="mt-3 bg-stone-900/60 border border-stone-800 rounded-xl p-3 text-sm italic text-stone-300">
+                    "<span id="motivationalQuote">Discipline creates freedom.</span>"
+                </div>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-turabDark border border-stone-800 p-4 rounded-2xl">
+                    <div class="text-xs text-turabMuted font-medium mb-1">Longest Record</div>
+                    <div class="text-2xl font-bold text-turabAccent" id="bestStreak">1 Day</div>
+                </div>
+                <div class="bg-turabDark border border-stone-800 p-4 rounded-2xl">
+                    <div class="text-xs text-turabMuted font-medium mb-1">Current Status</div>
+                    <div class="text-2xl font-bold text-turabGreen" id="currentRankText">Warrior</div>
+                </div>
+            </div>
+
+            <!-- Next Milestone Card -->
+            <div class="bg-turabDark border border-stone-800 p-4 rounded-2xl space-y-2">
+                <div class="flex justify-between text-xs font-semibold">
+                    <span class="text-turabMuted">Progress to Next Milestone</span>
+                    <span class="text-turabAccent" id="milestoneTarget">Day 3</span>
+                </div>
+                <div class="w-full bg-stone-800 h-2 rounded-full overflow-hidden">
+                    <div id="milestoneProgress" class="bg-turabAccent h-full w-1/3 transition-all duration-500"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW: ACHIEVEMENTS -->
+        <section id="viewAchievements" class="space-y-4 hidden">
+            <h2 class="text-lg font-bold text-turabCream border-b border-stone-800 pb-2">Milestones & Achievements</h2>
+            <div id="achievementsList" class="space-y-3">
+                <!-- Injected via JS -->
+            </div>
+        </section>
+
+        <!-- VIEW: HISTORY -->
+        <section id="viewHistory" class="space-y-4 hidden">
+            <h2 class="text-lg font-bold text-turabCream border-b border-stone-800 pb-2">Streak Journey History</h2>
+            <div class="bg-turabDark border border-stone-800 rounded-2xl p-4 space-y-3">
+                <div class="flex justify-between border-b border-stone-800 pb-2 text-sm">
+                    <span class="text-turabMuted">Journey Started</span>
+                    <span class="font-medium text-turabCream" id="startDateText">--</span>
+                </div>
+                <div class="flex justify-between border-b border-stone-800 pb-2 text-sm">
+                    <span class="text-turabMuted">Current Active Streak</span>
+                    <span class="font-medium text-turabAccent" id="historyCurrentStreak">--</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-turabMuted">Personal Best Streak</span>
+                    <span class="font-medium text-turabGreen" id="historyBestStreak">--</span>
+                </div>
+            </div>
+            
+            <div class="bg-turabDark border border-stone-800 rounded-2xl p-4">
+                <h3 class="text-sm font-semibold text-turabCream mb-2">Reset History</h3>
+                <div id="resetLogs" class="text-xs text-turabMuted space-y-1">
+                    <p class="italic">No previous resets recorded. Stay continuous!</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW: SETTINGS & PRIVACY -->
+        <section id="viewSettings" class="space-y-4 hidden">
+            <h2 class="text-lg font-bold text-turabCream border-b border-stone-800 pb-2">Settings & Privacy</h2>
+            
+            <div class="bg-turabDark border border-stone-800 rounded-2xl p-4 space-y-3">
+                <h3 class="text-sm font-bold text-turabCream">Privacy First</h3>
+                <p class="text-xs text-turabMuted leading-relaxed">
+                    Turab runs 100% locally on your device. No analytics, tracking code, or external servers are contacted. Your habit journey is completely private and secure.
+                </p>
+            </div>
+
+            <!-- Home Screen Widget Preview & Info -->
+            <div class="bg-turabDark border border-stone-800 rounded-2xl p-4 space-y-3">
+                <h3 class="text-sm font-bold text-turabCream">Home Screen Widget</h3>
+                <p class="text-xs text-turabMuted">The native widget displays only your mascot and numeric day count to ensure total privacy in public.</p>
+                
+                <!-- Simulated Widget -->
+                <div class="border border-stone-700 bg-stone-900 rounded-xl p-3 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-turabAccent/20 rounded-full flex items-center justify-center text-turabAccent font-bold">
+                            🐻
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-turabCream">TURAB COMPANION</div>
+                            <div class="text-[10px] text-turabMuted">Discipline & Freedom</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-base font-black text-turabAccent" id="widgetStreakPreview">Day 1</div>
+                        <div class="text-[9px] text-turabGreen">Active</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-turabDark border border-stone-800 rounded-2xl p-4 space-y-3">
+                <h3 class="text-sm font-bold text-rose-500">Reset Zone</h3>
+                <p class="text-xs text-turabMuted">Had a setback? Turab offers supportive, judgment-free reset tracking while preserving your all-time achievements.</p>
+                <button onclick="openResetModal()" class="w-full bg-rose-950/40 border border-rose-800/60 text-rose-300 font-semibold text-xs py-3 rounded-xl hover:bg-rose-900/40 transition">
+                    Reset Current Streak
+                </button>
+            </div>
+
+            <div class="text-center text-xs text-turabMuted pt-4">
+                Turab Version 1.0.0 (Build 100)<br>
+                Package: <span class="font-mono text-stone-500">com.turab.app</span>
+            </div>
+        </section>
+    </main>
+
+    <!-- NAVIGATION BAR -->
+    <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-turabDark border-t border-stone-800 flex justify-around p-3 z-10">
+        <button onclick="switchTab('home')" id="navHome" class="flex flex-col items-center nav-active">
+            <i class="fa-solid fa-house text-lg"></i>
+            <span class="text-[10px] mt-1">Home</span>
+        </button>
+        <button onclick="switchTab('achievements')" id="navAchievements" class="flex flex-col items-center text-turabMuted hover:text-turabCream">
+            <i class="fa-solid fa-trophy text-lg"></i>
+            <span class="text-[10px] mt-1">Milestones</span>
+        </button>
+        <button onclick="switchTab('history')" id="navHistory" class="flex flex-col items-center text-turabMuted hover:text-turabCream">
+            <i class="fa-solid fa-calendar-days text-lg"></i>
+            <span class="text-[10px] mt-1">History</span>
+        </button>
+        <button onclick="switchTab('settings')" id="navSettings" class="flex flex-col items-center text-turabMuted hover:text-turabCream">
+            <i class="fa-solid fa-gear text-lg"></i>
+            <span class="text-[10px] mt-1">Settings</span>
+        </button>
+    </nav>
+
+    <!-- TWO-STEP RESET CONFIRMATION MODAL -->
+    <div id="resetModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-turabDark border border-stone-800 rounded-3xl p-6 w-full max-w-sm space-y-4 relative">
+            <!-- Step 1 -->
+            <div id="resetStep1" class="space-y-4">
+                <div class="w-12 h-12 bg-amber-500/10 border border-amber-500/30 rounded-full flex items-center justify-center mx-auto text-amber-500 text-xl">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="text-base font-bold text-center text-turabCream">Record a Setback?</h3>
+                <p class="text-xs text-turabMuted text-center leading-relaxed">
+                    Setbacks happen on the path to mastery. Resetting will restart your current day count, but your long-term achievements and record streak will remain intact.
+                </p>
+                <div class="flex gap-2">
+                    <button onclick="closeResetModal()" class="flex-1 bg-stone-800 text-turabCream text-xs font-semibold py-3 rounded-xl">Cancel</button>
+                    <button onclick="goToResetStep2()" class="flex-1 bg-amber-600 text-white text-xs font-semibold py-3 rounded-xl">Continue</button>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div id="resetStep2" class="space-y-4 hidden">
+                <div class="w-12 h-12 bg-rose-500/10 border border-rose-500/30 rounded-full flex items-center justify-center mx-auto text-rose-500 text-xl">
+                    <i class="fa-solid fa-rotate-left"></i>
+                </div>
+                <h3 class="text-base font-bold text-center text-turabCream">Final Confirmation</h3>
+                <p class="text-xs text-turabMuted text-center leading-relaxed">
+                    Turab is right here with you. Tomorrow is Day 1 of your new streak. Are you sure you wish to reset right now?
+                </p>
+                <div class="flex gap-2">
+                    <button onclick="closeResetModal()" class="flex-1 bg-stone-800 text-turabCream text-xs font-semibold py-3 rounded-xl">Cancel</button>
+                    <button onclick="confirmResetStreak()" class="flex-1 bg-rose-600 text-white text-xs font-semibold py-3 rounded-xl">Confirm Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- APPLICATION LOGIC & STREAK MANAGEMENT -->
+    <script>
+        // Constants & Milestones definition
+        const MILESTONES = [
+            { day: 1, title: 'Sleepy Beginner', desc: 'Took the courageous first step.', icon: '🌱' },
+            { day: 3, title: 'Determined Initiate', desc: 'Overcame the initial hurdle.', icon: '⚡' },
+            { day: 7, title: 'Growing Guardian', desc: 'One full week of self-control.', icon: '🛡️' },
+            { day: 14, title: 'Steadfast Defender', desc: 'Two solid weeks of discipline.', icon: '🗡️' },
+            { day: 30, title: 'Disciplined Warrior', desc: '30 days of clarity and focus.', icon: '⚔️' },
+            { day: 60, title: 'Iron Mind', desc: '60 days of transformation.', icon: '👑' },
+            { day: 100, title: 'Legendary Bear', desc: 'Triple digit mastery reached.', icon: '🔥' },
+            { day: 365, title: 'Unshakeable Conqueror', desc: 'One full year of total freedom.', icon: '🌟' }
+        ];
+
+        const MOTIVATIONAL_QUOTES = [
+            "Stay strong. Every day matters.",
+            "Discipline creates freedom.",
+            "One decision at a time.",
+            "You are becoming stronger every single day.",
+            "Progress is built through consistency.",
+            "Keep going. Your future self will thank you.",
+            "Focus on peace, strength, and continuous growth."
+        ];
+
+        // State initialization
+        let appState = {
+            startDate: localStorage.getItem('turab_start_date') || new Date().toISOString().split('T')[0],
+            bestStreak: parseInt(localStorage.getItem('turab_best_streak') || '1'),
+            resets: JSON.parse(localStorage.getItem('turab_reset_logs') || '[]')
+        };
+
+        // Date calculations (Calendar day logic)
+        function calculateStreak() {
+            const start = new Date(appState.startDate);
+            const today = new Date();
+            
+            // Set both to local midnight for exact calendar day comparison
+            start.setHours(0,0,0,0);
+            today.setHours(0,0,0,0);
+
+            const diffTime = Math.abs(today - start);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            return Math.max(1, diffDays);
+        }
+
+        // Render UI
+        function updateUI() {
+            const currentStreak = calculateStreak();
+
+            // Update longest streak if current exceeds it
+            if (currentStreak > appState.bestStreak) {
+                appState.bestStreak = currentStreak;
+                localStorage.setItem('turab_best_streak', appState.bestStreak.toString());
+            }
+
+            // Text elements
+            document.getElementById('streakCount').innerText = currentStreak;
+            document.getElementById('bestStreak').innerText = `${appState.bestStreak} ${appState.bestStreak === 1 ? 'Day' : 'Days'}`;
+            document.getElementById('startDateText').innerText = appState.startDate;
+            document.getElementById('historyCurrentStreak').innerText = `${currentStreak} Days`;
+            document.getElementById('historyBestStreak').innerText = `${appState.bestStreak} Days`;
+            document.getElementById('widgetStreakPreview').innerText = `Day ${currentStreak}`;
+
+            // Random motivational message
+            const randomQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+            document.getElementById('motivationalQuote').innerText = randomQuote;
+
+            // Determine Mascot Rank & Expression
+            let rank = 'Sleepy Beginner';
+            let mouthD = "M 90 128 Q 100 135 110 128"; // Smile
+
+            if (currentStreak >= 365) {
+                rank = 'Unshakeable Conqueror';
+            } else if (currentStreak >= 100) {
+                rank = 'Legendary Bear';
+            } else if (currentStreak >= 30) {
+                rank = 'Disciplined Warrior';
+            } else if (currentStreak >= 7) {
+                rank = 'Growing Guardian';
+            } else if (currentStreak >= 3) {
+                rank = 'Determined Initiate';
+            }
+
+            document.getElementById('mascotRankBadge').innerText = rank;
+            document.getElementById('currentRankText').innerText = rank;
+
+            // Milestone Progress
+            let nextMilestone = MILESTONES.find(m => m.day > currentStreak) || MILESTONES[MILESTONES.length - 1];
+            let prevMilestoneDay = [...MILESTONES].reverse().find(m => m.day <= currentStreak)?.day || 1;
+            
+            document.getElementById('milestoneTarget').innerText = `Day ${nextMilestone.day}`;
+            let progressPercent = currentStreak >= 365 ? 100 : Math.min(100, Math.max(10, ((currentStreak - prevMilestoneDay) / (nextMilestone.day - prevMilestoneDay)) * 100));
+            document.getElementById('milestoneProgress').style.width = `${progressPercent}%`;
+
+            renderAchievements(currentStreak);
+            renderResetLogs();
+        }
+
+        function renderAchievements(currentStreak) {
+            const container = document.getElementById('achievementsList');
+            container.innerHTML = '';
+
+            MILESTONES.forEach(m => {
+                const unlocked = currentStreak >= m.day;
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-2xl border flex items-center justify-between ${
+                    unlocked 
+                    ? 'bg-turabDark border-turabAccent/50 text-turabCream' 
+                    : 'bg-stone-900/40 border-stone-800 text-stone-600 opacity-60'
+                }`;
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="text-2xl">${m.icon}</div>
+                        <div>
+                            <div class="text-sm font-bold flex items-center gap-2">
+                                ${m.title}
+                                <span class="text-[10px] px-2 py-0.5 rounded-full ${unlocked ? 'bg-turabAccent/20 text-turabAccent' : 'bg-stone-800 text-stone-500'}">Day ${m.day}</span>
+                            </div>
+                            <div class="text-xs text-turabMuted mt-0.5">${m.desc}</div>
+                        </div>
+                    </div>
+                    <div>
+                        ${unlocked ? '<i class="fa-solid fa-circle-check text-turabAccent text-lg"></i>' : '<i class="fa-solid fa-lock text-stone-700 text-base"></i>'}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderResetLogs() {
+            const container = document.getElementById('resetLogs');
+            if (!appState.resets || appState.resets.length === 0) {
+                container.innerHTML = '<p class="italic">No previous resets recorded. Stay continuous!</p>';
+                return;
+            }
+            container.innerHTML = appState.resets.map(r => `
+                <div class="flex justify-between py-1 border-b border-stone-800/50">
+                    <span>Setback logged on ${r.date}</span>
+                    <span class="text-turabAccent">Reached Day ${r.reachedStreak}</span>
+                </div>
+            `).join('');
+        }
+
+        // Navigation Switcher
+        function switchTab(tab) {
+            ['home', 'achievements', 'history', 'settings'].forEach(t => {
+                const view = document.getElementById(`view${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                const nav = document.getElementById(`nav${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                if (t === tab) {
+                    view.classList.remove('hidden');
+                    nav.className = 'flex flex-col items-center nav-active';
+                } else {
+                    view.classList.add('hidden');
+                    nav.className = 'flex flex-col items-center text-turabMuted hover:text-turabCream';
+                }
+            });
+        }
+
+        // Reset Safeguard Handlers
+        function openResetModal() {
+            document.getElementById('resetStep1').classList.remove('hidden');
+            document.getElementById('resetStep2').classList.add('hidden');
+            document.getElementById('resetModal').classList.remove('hidden');
+        }
+
+        function closeResetModal() {
+            document.getElementById('resetModal').classList.add('hidden');
+        }
+
+        function goToResetStep2() {
+            document.getElementById('resetStep1').classList.add('hidden');
+            document.getElementById('resetStep2').classList.remove('hidden');
+        }
+
+        function confirmResetStreak() {
+            const currentStreak = calculateStreak();
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            // Record log
+            appState.resets.unshift({ date: todayStr, reachedStreak: currentStreak });
+            appState.startDate = todayStr;
+
+            // Persist
+            localStorage.setItem('turab_start_date', appState.startDate);
+            localStorage.setItem('turab_reset_logs', JSON.stringify(appState.resets));
+
+            closeResetModal();
+            updateUI();
+            switchTab('home');
+        }
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!localStorage.getItem('turab_start_date')) {
+                localStorage.setItem('turab_start_date', appState.startDate);
+            }
+            updateUI();
+        });
+    </script>
+</body>
+</html>

@@ -35,7 +35,7 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      - name: Generate Native Widget and Milestone Mascots
+      - name: Generate Native Widget with Existing Milestone Icons
         run: |
           python3 <<'PY'
           from pathlib import Path
@@ -52,9 +52,10 @@ jobs:
           public class TurabWidgetBridge {
               private final Context context;
               public TurabWidgetBridge(Context c) { context = c.getApplicationContext(); }
-              @JavascriptInterface public void update(String startDate, int bestStreak) {
+              @JavascriptInterface public void update(String startDate, int bestStreak, int currentStreak, String milestoneIcon) {
                   SharedPreferences p = context.getSharedPreferences("TurabWidgetData", Context.MODE_PRIVATE);
-                  p.edit().putString("startDate", startDate).putInt("bestStreak", bestStreak).apply();
+                  p.edit().putString("startDate", startDate).putInt("bestStreak", bestStreak)
+                      .putInt("syncedStreak", currentStreak).putString("milestoneIcon", milestoneIcon).apply();
                   TurabWidgetProvider.updateAll(context);
               }
           }""")
@@ -91,7 +92,10 @@ jobs:
                   RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.turab_widget);
                   v.setTextViewText(R.id.widget_streak, "🔥 " + streak);
                   v.setTextViewText(R.id.widget_message, "Don't let it break!");
-                  v.setImageViewResource(R.id.widget_mascot, mascotForStreak(streak));
+                  String htmlIcon = p.getString("milestoneIcon", "");
+                  String icon = p.getInt("syncedStreak", -1) == streak && !htmlIcon.isEmpty()
+                      ? htmlIcon : milestoneIconForStreak(streak);
+                  v.setTextViewText(R.id.widget_milestone_icon, icon);
                   Intent launch = c.getPackageManager().getLaunchIntentForPackage(c.getPackageName());
                   if (launch != null) {
                       PendingIntent pi = PendingIntent.getActivity(c, 0, launch,
@@ -100,15 +104,16 @@ jobs:
                   }
                   m.updateAppWidget(id, v);
               }
-              private static int mascotForStreak(int d) {
-                  if (d >= 365) return R.drawable.mascot_conqueror;
-                  if (d >= 100) return R.drawable.mascot_legend;
-                  if (d >= 60) return R.drawable.mascot_iron;
-                  if (d >= 30) return R.drawable.mascot_warrior;
-                  if (d >= 14) return R.drawable.mascot_defender;
-                  if (d >= 7) return R.drawable.mascot_guardian;
-                  if (d >= 3) return R.drawable.mascot_spark;
-                  return R.drawable.mascot_seed;
+              // These are the exact milestone icons defined in index.html.
+              private static String milestoneIconForStreak(int d) {
+                  if (d >= 365) return "🌟";
+                  if (d >= 100) return "🔥";
+                  if (d >= 60) return "👑";
+                  if (d >= 30) return "⚔️";
+                  if (d >= 14) return "🗡️";
+                  if (d >= 7) return "🛡️";
+                  if (d >= 3) return "⚡";
+                  return "🌱";
               }
               // Calendar days: start date is Day 1; phone-local midnight advances the count.
               private static int calculateStreak(String s) {
@@ -131,7 +136,7 @@ jobs:
           <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:id="@+id/widget_root" android:layout_width="match_parent"
               android:layout_height="match_parent" android:orientation="vertical"
-              android:gravity="center" android:padding="5dp"
+              android:gravity="center" android:padding="4dp"
               android:background="@drawable/turab_widget_background">
               <TextView android:id="@+id/widget_streak" android:layout_width="wrap_content"
                   android:layout_height="wrap_content" android:gravity="center"
@@ -141,10 +146,13 @@ jobs:
                   android:layout_height="wrap_content" android:layout_marginTop="1dp"
                   android:gravity="center" android:includeFontPadding="false"
                   android:text="Don't let it break!" android:textColor="#FFE0A0" android:textSize="10sp"/>
-              <ImageView android:id="@+id/widget_mascot" android:layout_width="match_parent"
-                  android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="1dp"
-                  android:contentDescription="Streak mascot" android:scaleType="fitCenter"
-                  android:src="@drawable/mascot_seed"/>
+              <TextView android:id="@+id/widget_milestone_icon"
+                  android:layout_width="match_parent" android:layout_height="0dp"
+                  android:layout_weight="1" android:layout_marginTop="0dp"
+                  android:gravity="center" android:textAlignment="center"
+                  android:includeFontPadding="false" android:maxLines="1"
+                  android:text="🌱" android:textSize="70sp"
+                  android:contentDescription="Current milestone icon"/>
           </LinearLayout>""")
 
           (drawable / "turab_widget_background.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
@@ -154,38 +162,6 @@ jobs:
               <corners android:radius="20dp"/>
               <stroke android:width="1dp" android:color="#E6A34A"/>
           </shape>""")
-
-          tiers = {
-              "seed": ("#80502F", "#E6B56E", "#A8C96B", '<path android:fillColor="#A8C96B" android:pathData="M100,34 Q78,7 72,29 Q87,43 100,34Z"/>'),
-              "spark": ("#875332", "#F1C36F", "#F5C542", '<path android:fillColor="#F5C542" android:pathData="M108,8 L82,47 L101,43 L91,70 L127,29 L106,33Z"/>'),
-              "guardian": ("#80502F", "#E6B56E", "#4D9B75", '<path android:fillColor="#4D9B75" android:strokeColor="#C9E7D7" android:strokeWidth="3" android:pathData="M100,12 L128,24 L124,50 Q116,69 100,76 Q84,69 76,50 L72,24Z"/>'),
-              "defender": ("#79502F", "#E6B56E", "#B7C8D9", '<path android:fillColor="#D9E2EA" android:pathData="M151,10 L145,29 L151,92 L157,29Z"/>'),
-              "warrior": ("#70472B", "#E6B56E", "#C58B3A", '<path android:fillColor="#D7B36A" android:pathData="M65,12 L73,12 L137,78 L130,85Z"/><path android:fillColor="#D7B36A" android:pathData="M135,12 L143,12 L71,85 L64,78Z"/>'),
-              "iron": ("#66432D", "#E6B56E", "#AEB8C2", '<path android:fillColor="#AEB8C2" android:strokeColor="#E7EDF2" android:strokeWidth="2" android:pathData="M69,37 L80,11 L94,29 L100,5 L107,29 L121,11 L132,37 L124,48 L76,48Z"/>'),
-              "legend": ("#68452B", "#F0C878", "#E0A82E", '<path android:fillColor="#E0A82E" android:strokeColor="#FFE6A3" android:strokeWidth="3" android:pathData="M67,37 L80,10 L94,29 L100,4 L107,29 L121,10 L134,37 L125,49 L75,49Z"/>'),
-              "conqueror": ("#5D3D2A", "#F4D28A", "#F2C14E", '<path android:fillColor="#F2C14E" android:strokeColor="#FFF0B5" android:strokeWidth="3" android:pathData="M60,39 L76,9 L94,29 L100,2 L108,29 L126,9 L142,39 L129,54 L73,54Z"/>')
-          }
-          for name, (fur, muzzle, accent, accessory) in tiers.items():
-              vector = f"""<?xml version="1.0" encoding="utf-8"?>
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="200dp" android:height="200dp" android:viewportWidth="200" android:viewportHeight="200">
-              <path android:fillColor="#44FFD78A" android:pathData="M100,14 A91,91 0 1,0 100,196 A91,91 0 1,0 100,14Z"/>
-              {accessory}
-              <path android:fillColor="{fur}" android:strokeColor="#4B2D20" android:strokeWidth="5" android:pathData="M55,39 A27,27 0 1,0 55,93 A27,27 0 1,0 55,39Z"/>
-              <path android:fillColor="{fur}" android:strokeColor="#4B2D20" android:strokeWidth="5" android:pathData="M145,39 A27,27 0 1,0 145,93 A27,27 0 1,0 145,39Z"/>
-              <path android:fillColor="{muzzle}" android:pathData="M55,53 A13,13 0 1,0 55,79 A13,13 0 1,0 55,53Z"/>
-              <path android:fillColor="{muzzle}" android:pathData="M145,53 A13,13 0 1,0 145,79 A13,13 0 1,0 145,53Z"/>
-              <path android:fillColor="{fur}" android:strokeColor="#4B2D20" android:strokeWidth="5" android:pathData="M100,39 C61,39 37,68 39,112 C40,151 65,177 100,179 C135,177 160,151 161,112 C163,68 139,39 100,39Z"/>
-              <path android:fillColor="{muzzle}" android:pathData="M61,126 A39,29 0 1,0 139,126 A39,29 0 1,0 61,126Z"/>
-              <path android:fillColor="#FFF6E7" android:pathData="M65,94 A11,14 0 1,0 87,94 A11,14 0 1,0 65,94Z"/>
-              <path android:fillColor="#FFF6E7" android:pathData="M113,94 A11,14 0 1,0 135,94 A11,14 0 1,0 113,94Z"/>
-              <path android:fillColor="#241A16" android:pathData="M78,91 A5,5 0 1,0 78,101 A5,5 0 1,0 78,91Z"/>
-              <path android:fillColor="#241A16" android:pathData="M122,91 A5,5 0 1,0 122,101 A5,5 0 1,0 122,91Z"/>
-              <path android:fillColor="#2B1A13" android:pathData="M88,117 Q100,108 112,117 Q100,132 88,117Z"/>
-              <path android:fillColor="{accent}" android:pathData="M77,166 Q100,181 123,166 L116,190 L84,190Z"/>
-              <path android:fillColor="#FFFFFF" android:fillAlpha="0.18" android:pathData="M55,111 Q58,77 83,65 Q67,89 70,119Z"/>
-          </vector>"""
-              (drawable / f"mascot_{name}.xml").write_text(vector)
 
           (xml / "turab_widget_info.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
           <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
@@ -202,7 +178,7 @@ jobs:
               <meta-data android:name="android.appwidget.provider" android:resource="@xml/turab_widget_info"/>
           </receiver>"""
           if "TurabWidgetProvider" not in text:
-              text = text.replace("</application>", receiver + "\\n</application>")
+              text = text.replace("</application>", receiver + "\n</application>")
           manifest.write_text(text)
 
           (java / "MainActivity.java").write_text("""package com.turab.app;
@@ -214,7 +190,7 @@ jobs:
                   getBridge().getWebView().addJavascriptInterface(new TurabWidgetBridge(this), "TurabWidgetNative");
               }
           }""")
-          print("Generated the native widget and 8 milestone bear variants.")
+          print("Generated the native widget using the eight existing HTML milestone icons.")
           PY
 
       - name: Connect Turab App to Widget
@@ -223,12 +199,13 @@ jobs:
           from pathlib import Path
           file = Path("www/index.html")
           html = file.read_text()
-          function = "\\n".join([
+          function = "\n".join([
               "// Sync streak data to the Android home-screen widget.",
               "function syncTurabWidget(currentStreak) {",
               "    try {",
               "        if (window.TurabWidgetNative) {",
-              "            window.TurabWidgetNative.update(appState.startDate, Number(appState.bestStreak || 1));",
+              "            const milestone = [...MILESTONES].reverse().find(item => item.day <= currentStreak) || MILESTONES[0];",
+              "            window.TurabWidgetNative.update(appState.startDate, Number(appState.bestStreak || 1), currentStreak, milestone.icon);",
               "        }",
               "    } catch (error) { console.log('Turab widget sync:', error); }",
               "}",
@@ -241,7 +218,7 @@ jobs:
           marker2 = "            // Text elements"
           if "syncTurabWidget(currentStreak);" not in html:
               if marker2 not in html: raise SystemExit("Could not find Text elements marker in index.html.")
-              html = html.replace(marker2, "            syncTurabWidget(currentStreak);\\n\\n" + marker2, 1)
+              html = html.replace(marker2, "            syncTurabWidget(currentStreak);\n\n" + marker2, 1)
           file.write_text(html)
           print("Widget synchronization connected.")
           PY
